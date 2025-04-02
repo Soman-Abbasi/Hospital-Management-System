@@ -1,0 +1,433 @@
+from tkinter import *
+from tkinter import messagebox
+from tkinter.ttk import Style
+from PIL.ImageOps import expand
+from sympy.crypto import padded_key
+from ttkbootstrap.constants import *
+import ttkbootstrap as tb
+from datetime import datetime
+
+
+#Doctor
+class Doctor:
+    def __init__(self,doc_id,name,specialization):
+        self.id=doc_id
+        self.name=name
+        self.specialization=specialization
+    def __str__(self):
+        return f"ID: {self.id} ⸻ Name: {self.name} ⸻ Specialization: {self.specialization}"
+
+#Patient
+class Patient:
+    def __init__(self,pat_id,name,age):
+        self.id=pat_id
+        self.name=name
+        self.age=age
+
+    def __str__(self):
+        return f"ID: {self.id} ⸻ Name: {self.name} ⸻ Age: {self.age}"
+
+#Appointment
+class Appointment:
+    def __init__(self,doctor,patient,date):
+        self.doctor=doctor
+        self.patient=patient
+        self.date=date
+
+    def __str__(self):
+        return f"Doctor: {self.doctor} ⸻ Patient: {self.patient} ⸻ Date: {self.date}"
+
+#Hospital
+class Hospital:
+    def __init__(self,name):
+        self.name=name
+        self.doctors=[]
+        self.patients=[]
+        self.appointments=[]
+
+    def add_doctor(self,doctor):
+        if self.find_doctor_by_id(doctor.id):
+            raise ValueError (f"Doctor with ID {doctor.id} already exits.")
+        self.doctors.append(doctor)
+
+    def add_patient(self,patient):
+        if self.find_patient_by_id(patient.id):
+            raise  ValueError (f"Patient with ID {patient.id} already exits. ")
+        self.patients.append(patient)
+
+    def schedule_appointment(self,doctor_id,patient_id,date):
+        doctor=self.find_doctor_by_id(doctor_id)
+        patient=self.find_patient_by_id(patient_id)
+        if not doctor:
+            raise ValueError (f"Doctor with ID {doctor_id} not exits. ")
+        if not patient:
+            raise ValueError (f"Patient with ID {patient_id} not exits. ")
+        appointment=Appointment(doctor.name,patient.name,date)
+        print(appointment)
+        self.appointments.append(appointment)
+        return appointment
+
+    def find_doctor_by_id(self,doctor_id):
+        for doctor in self.doctors:
+            if doctor.id==doctor_id:
+                return doctor
+        return None
+
+    def find_patient_by_id(self,patient_id):
+        for patient in self.patients:
+            if patient.id==patient_id:
+                return patient
+        return None
+
+    def get_doctors(self):
+        return self.doctors
+
+    def get_patients(self):
+        return self.patients
+
+    def appointments(self):
+        return self.appointments
+
+
+
+#Hospital Management System....
+class HospitalApp:
+    def __init__(self,root):
+        self.root=root
+        self.root.title("Hospital Management System")
+        self.style=tb.Style(theme="minty")
+
+        self.root.state('zoomed')
+        self.root.minsize(800,600)                 #.........
+
+        self.hospital=Hospital("CyberCare Hospital")
+        #.........
+
+        self.main_frame=tb.Frame(root)
+        self.main_frame.pack(fill=BOTH,expand=True)
+
+        self.show_main_menu()
+
+    def show_main_menu(self):
+        # Clear existing widgets
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+        #
+        main_menu_frame = tb.Frame(self.main_frame)
+        main_menu_frame.pack(expand=True, fill=BOTH, padx=20, pady=20)
+
+     
+        header_frame = tb.Frame(main_menu_frame)
+        header_frame.pack(pady=(20, 40))
+        tb.Label(header_frame, text="Hospital Management System",
+                 font=("Helvetica", 24, "bold"), bootstyle="primary").pack()
+
+      
+        buttons_frame = tb.Frame(main_menu_frame)
+        buttons_frame.pack(expand=True)
+
+      
+        buttons_frame.grid_columnconfigure(0, weight=1)
+        buttons_frame.grid_columnconfigure(1, weight=1)
+        buttons_frame.grid_rowconfigure(0, weight=1)
+        buttons_frame.grid_rowconfigure(1, weight=1)
+        buttons_frame.grid_rowconfigure(2, weight=1)
+
+       
+        tb.Button(buttons_frame, text="Add Doctor", command=self.show_add_doctor,
+                  width=20, bootstyle="primary-outline").grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+
+        tb.Button(buttons_frame, text="Add Patient", command=self.show_add_patient,
+                  width=20, bootstyle="primary-outline").grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+
+        tb.Button(buttons_frame, text="Schedule Appointment", command=self.show_schedule_appointment,
+                  width=20, bootstyle="primary-outline").grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+
+        tb.Button(buttons_frame, text="View Doctors", command=self.show_doctors_list,
+                  width=20, bootstyle="primary-outline").grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
+
+        tb.Button(buttons_frame, text="View Patients", command=self.show_patients_list,
+                  width=20, bootstyle="primary-outline").grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
+
+        tb.Button(buttons_frame, text="View Appointments", command=self.show_appointments_list,
+                  width=20, bootstyle="primary-outline").grid(row=2, column=1, padx=10, pady=10, sticky="nsew")
+
+        # Exit Button
+        exit_frame = tb.Frame(main_menu_frame)
+        exit_frame.pack(pady=(40, 20))
+        tb.Button(exit_frame, text="Exit", command=self.root.destroy,
+                  width=20, bootstyle="danger").pack()
+
+    def show_add_doctor(self):
+        self.clear_contents()
+
+        dc_frame = tb.Frame(self.main_frame)
+        dc_frame.pack(expand=True, pady=20)
+
+        tb.Label(dc_frame, text="Add New Doctor", font=("Helvetica", 16)).grid(
+            row=0, column=0, columnspan=2, pady=10)
+
+        tb.Label(dc_frame, text="Doctor ID: ").grid(row=1, column=0, padx=5, pady=5, sticky=E)
+        self.dc_id_entry = tb.Entry(dc_frame)
+        self.dc_id_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tb.Label(dc_frame, text="Name: ").grid(row=2, column=0, padx=5, pady=5, sticky=E)
+        self.dc_name_entry = tb.Entry(dc_frame)
+        self.dc_name_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tb.Label(dc_frame, text="Specialization: ").grid(row=3, column=0, padx=5, pady=5, sticky=E)
+        self.dc_spec_entry = tb.Entry(dc_frame)
+        self.dc_spec_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        btn_frame = tb.Frame(dc_frame)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
+
+        tb.Button(btn_frame, text="Submit", command=self.add_doctor,
+                  bootstyle="success").pack(side=LEFT, padx=10)
+
+        tb.Button(btn_frame, text="Back", command=self.show_main_menu,
+                  bootstyle="secondary").pack(side=LEFT, padx=10)
+        
+        self.root.bind('<Return>', self.add_doctor)
+
+    def add_doctor(self, _=None):
+        try:
+            doctor_id=self.dc_id_entry.get()
+            doctor_name=self.dc_name_entry.get().strip()
+            doctor_spec=self.dc_spec_entry.get().strip()
+            if not doctor_id or not doctor_name or not doctor_spec:
+                messagebox.showerror("Error","All Fields are required")
+                return
+            if int(doctor_id) < 1:
+                messagebox.showerror("Error","ID must be a positive Number")
+                return
+
+            if not doctor_name.isalpha():
+                messagebox.showerror("Error","Name must be alphabetic")
+                return
+            doctor_id=int(doctor_id)
+            doctor=Doctor(doctor_id,doctor_name,doctor_spec)
+            self.hospital.add_doctor(doctor)
+            messagebox.showinfo("Success","Doctor added Successfully")
+            self.show_main_menu()
+        except ValueError as e:
+            messagebox.showerror("Error",str(e))
+
+
+
+    def show_add_patient(self):
+        self.clear_contents()
+
+        pt_frame = tb.Frame(self.main_frame)
+        pt_frame.pack(expand=True, pady=20)
+
+        tb.Label(pt_frame, text="Add New Patient", font=("Helvetica", 16)).grid(
+            row=0, column=0, columnspan=2, pady=10)
+
+        tb.Label(pt_frame, text="Patient ID: ").grid(row=1, column=0, padx=5, pady=5, sticky=E)
+        self.pt_id_entry = tb.Entry(pt_frame)
+        self.pt_id_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tb.Label(pt_frame, text="Name: ").grid(row=2, column=0, padx=5, pady=5, sticky=E)
+        self.pt_name_entry = tb.Entry(pt_frame)
+        self.pt_name_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tb.Label(pt_frame, text="Age: ").grid(row=3, column=0, padx=5, pady=5, sticky=E)
+        self.pt_age_entry = tb.Entry(pt_frame)
+        self.pt_age_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        btn_frame = tb.Frame(pt_frame)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
+
+        tb.Button(btn_frame, text="Submit", command=self.add_patient,
+                  bootstyle="success").pack(side=LEFT, padx=10)
+
+        tb.Button(btn_frame, text="Back", command=self.show_main_menu,
+                  bootstyle="secondary").pack(side=LEFT, padx=10)
+    
+        self.root.bind('<Return>', self.add_patient)
+
+    def add_patient(self, _=None):
+        try:
+            pat_id = self.pt_id_entry.get().strip()
+            name = self.pt_name_entry.get().strip()
+            age = self.pt_age_entry.get().strip()
+
+            if not pat_id or not name or not age:
+                messagebox.showerror("Error", "All fields are required!")
+                return
+
+            if int(pat_id) < 1:
+                messagebox.showerror("Error","ID must be a positive Number")
+                return
+
+            if not name.isalpha():
+                messagebox.showerror("Error","Name must be alphabetic")
+                return
+
+            pat_id = int(pat_id)
+            age = int(age)
+
+            if age <= 0 or age > 120:
+                messagebox.showerror("Error", "Enter a Valid Age")
+                return
+
+            patient = Patient(pat_id, name, age)
+            self.hospital.add_patient(patient)
+            messagebox.showinfo("Success", "Patient added successfully!")
+            self.show_main_menu()
+        except ValueError as e:
+            messagebox.showerror("Error",str(e))
+
+
+    def show_schedule_appointment(self):
+        self.clear_contents()
+
+        form_frame = tb.Frame(self.main_frame)
+        form_frame.pack(expand=True, pady=20)
+
+        tb.Label(form_frame, text="Schedule Appointment", font=("Helvetica", 16)).grid(row=0, column=0, columnspan=2, pady=10)
+
+
+        tb.Label(form_frame, text="Doctor ID:").grid(row=1, column=0, padx=5, pady=5, sticky=E)
+        self.app_doctor_id_entry = tb.Entry(form_frame)
+        self.app_doctor_id_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tb.Label(form_frame, text="Patient ID:").grid(row=2, column=0, padx=5, pady=5, sticky=E)
+        self.app_patient_id_entry = tb.Entry(form_frame)
+        self.app_patient_id_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tb.Label(form_frame, text="Date:").grid(row=3, column=0, padx=5, pady=5, sticky=E)
+        # self.app_date_entry = tb.Entry(form_frame)
+        # self.app_date_entry.grid(row=3, column=1, padx=5, pady=5)
+        self.app_date_entry = tb.DateEntry(form_frame)
+        self.app_date_entry.grid(row=3, column=1, padx=5, pady=5)
+        
+        button_frame = tb.Frame(form_frame)
+        button_frame.grid(row=4, column=0, columnspan=2, pady=20)
+
+        tb.Button(button_frame, text="Submit", command=self.schedule_appointment,
+                  bootstyle="success").pack(side=LEFT, padx=10)
+        tb.Button(button_frame, text="Back", command=self.show_main_menu,
+                  bootstyle="secondary").pack(side=LEFT, padx=10)
+        
+        self.root.bind('<Return>', self.schedule_appointment)
+
+    def schedule_appointment(self, _=None):
+        try:
+            doc_id = self.app_doctor_id_entry.get().strip()
+            pat_id = self.app_patient_id_entry.get().strip()
+            date = self.app_date_entry.entry.get().strip()
+            if not doc_id or not pat_id or not date:
+                messagebox.showerror("Error", "All fields are required!")
+                return
+
+            doc_id = int(doc_id)
+            pat_id = int(pat_id)
+
+            if date == "":
+                raise ValueError("Date cannot be empty")
+            today = datetime.today().date()
+            date = datetime.strptime(date, "%m/%d/%Y").date()
+            if date < today:
+                raise ValueError("Date must be today or in the future")
+
+            appointment = self.hospital.schedule_appointment(doc_id, pat_id, str(date))
+            messagebox.showinfo("Success", f"Appointment scheduled:\n{appointment}")
+            self.show_main_menu()
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
+
+
+
+    def show_doctors_list(self):
+        self.clear_contents()
+        dc_ls_frame=tb.Frame(self.main_frame)
+        dc_ls_frame.pack(expand=True,fill=BOTH,padx=20,pady=20)
+
+        tb.Label(dc_ls_frame,text="Doctor List",font=("Helvetica",16)).pack(pady=10)
+        if not self.hospital.doctors:
+            tb.Label(dc_ls_frame,text="No Doctor Available",bootstyle="info").pack()
+        else:
+
+            txt_frame=tb.Frame(dc_ls_frame)
+            txt_frame.pack(expand=True,fill=BOTH)
+
+            txt_widget=Text(txt_frame,wrap=WORD,width=80,height=20)
+            scrollbar=tb.Scrollbar(txt_frame,orient=VERTICAL,command=txt_widget.yview)
+            txt_widget.config(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side=RIGHT,fill=Y)
+            txt_widget.pack(side=LEFT,expand=True,fill=BOTH)
+
+            for doctor in self.hospital.doctors:
+                txt_widget.insert(END,f"{doctor}\n\n")
+
+            txt_widget.config(state=DISABLED)
+
+        tb.Button(dc_ls_frame,text="Back to Main",command=self.show_main_menu,bootstyle="secondary").pack(pady=20)
+
+
+    def show_patients_list(self):
+        self.clear_contents()
+        pt_ls_frame = tb.Frame(self.main_frame)
+        pt_ls_frame.pack(expand=True, fill=BOTH, padx=20, pady=20)
+
+        tb.Label(pt_ls_frame, text="Patient List", font=("Helvetica", 16)).pack(pady=10)
+        if not self.hospital.patients:
+            tb.Label(pt_ls_frame, text="No Patient Available", bootstyle="info").pack()
+        else:
+
+            txt_frame = tb.Frame(pt_ls_frame)
+            txt_frame.pack(expand=True, fill=BOTH)
+
+            txt_widget = Text(txt_frame, wrap=WORD, width=80, height=20)
+            scrollbar = tb.Scrollbar(txt_frame, orient=VERTICAL, command=txt_widget.yview)
+            txt_widget.config(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side=RIGHT, fill=Y)
+            txt_widget.pack(side=LEFT, expand=True, fill=BOTH)
+
+            for patient in self.hospital.patients:
+                txt_widget.insert(END, f"{patient}\n\n")
+
+            txt_widget.config(state=DISABLED)
+
+        tb.Button(pt_ls_frame, text="Back to Main", command=self.show_main_menu, bootstyle="secondary").pack(pady=20)
+
+    def show_appointments_list(self):
+        self.clear_contents()
+        app_ls_frame = tb.Frame(self.main_frame)
+        app_ls_frame.pack(expand=True, fill=BOTH, padx=20, pady=20)
+
+        tb.Label(app_ls_frame, text="Appointments List", font=("Helvetica", 16)).pack(pady=10)
+        if not self.hospital.appointments:
+            tb.Label(app_ls_frame, text="No Patient Available", bootstyle="info").pack()
+        else:
+
+            txt_frame = tb.Frame(app_ls_frame)
+            txt_frame.pack(expand=True, fill=BOTH)
+
+            txt_widget = Text(txt_frame, wrap=WORD, width=80, height=20)
+            scrollbar = tb.Scrollbar(txt_frame, orient=VERTICAL, command=txt_widget.yview)
+            txt_widget.config(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side=RIGHT, fill=Y)
+            txt_widget.pack(side=LEFT, expand=True, fill=BOTH)
+
+            for appointment in self.hospital.appointments:
+                txt_widget.insert(END, f"{appointment}\n\n")
+
+            txt_widget.config(state=DISABLED)
+
+        tb.Button(app_ls_frame, text="Back to Main", command=self.show_main_menu, bootstyle="secondary").pack(pady=20)
+
+    def clear_contents(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+
+
+
+if __name__ == "__main__":
+    root = tb.Window(themename="minty")
+    app = HospitalApp(root)
+    root.mainloop() 
